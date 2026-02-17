@@ -1,62 +1,19 @@
-terraform {
-  required_version = ">= 1.0"
+data "aws_vpc" "default" {
+  default = true
 }
 
-provider "aws" {
-  region = var.aws_region
-}
-
-# Modules
-module "vpc" {
-  source = "./modules/vpc"
-  
-  providers = {
-    aws = aws
-  }
-}
-
-module "alb" {
-  source = "./modules/alb"
-  
-  providers = {
-    aws = aws
-  }
-  
-  depends_on = [module.vpc]
-}
-
-module "rds" {
-  source = "./modules/rds"
-  
-  providers = {
-    aws = aws
-  }
-  
-  depends_on = [module.vpc]
-}
-
-module "iam" {
-  source = "./modules/iam"
-  
-  providers = {
-    aws = aws
-  }
-}
-
-module "ecr" {
-  source = "./modules/ecr"
-  
-  providers = {
-    aws = aws
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
 
 module "ecs" {
   source = "./modules/ecs"
-  
-  providers = {
-    aws = aws
-  }
-  
-  depends_on = [module.vpc, module.alb, module.rds, module.iam, module.ecr]
+
+  image_url   = var.image_url
+  subnet_ids  = data.aws_subnets.default.ids
+  vpc_id      = data.aws_vpc.default.id
+  db_password = var.db_password
 }
