@@ -1,0 +1,45 @@
+name: Deploy Strapi to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to ECR
+      run: |
+        aws ecr get-login-password --region $AWS_REGION \
+        | docker login --username AWS --password-stdin \
+        $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com
+
+    - name: Build & Push Docker Image
+      run: |
+        IMAGE_TAG=$(git rev-parse --short HEAD)
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        ECR_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/strapi
+
+        docker build -t $ECR_URI:$IMAGE_TAG backend
+        docker push $ECR_URI:$IMAGE_TAG
+
+        echo "IMAGE_URL=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Terraform Init & Apply
+      run: |
+        cd terraform
+        terraform init
+        terraform apply -auto-approve \
+          -var="image_url=${IMAGE_URL}"
