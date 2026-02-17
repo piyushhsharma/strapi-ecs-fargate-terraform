@@ -3,6 +3,10 @@ resource "aws_lb" "this" {
   load_balancer_type = "application"
   subnets            = local.public_subnets
   security_groups    = [aws_security_group.alb.id]
+
+  tags = {
+    Name = "${var.project_name}-alb"
+  }
 }
 
 resource "aws_lb_target_group" "this" {
@@ -11,7 +15,7 @@ resource "aws_lb_target_group" "this" {
   protocol    = "HTTP"
   vpc_id      = local.vpc_id
   target_type = "ip"
-  
+
   health_check {
     path                = "/"
     protocol            = "HTTP"
@@ -20,6 +24,10 @@ resource "aws_lb_target_group" "this" {
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
+  }
+
+  tags = {
+    Name = "${var.project_name}-tg"
   }
 }
 

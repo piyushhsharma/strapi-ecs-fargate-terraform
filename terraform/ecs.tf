@@ -1,5 +1,10 @@
 resource "aws_ecs_cluster" "this" {
   name = "${var.project_name}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
 
 resource "aws_ecs_task_definition" "strapi" {
@@ -9,7 +14,7 @@ resource "aws_ecs_task_definition" "strapi" {
   cpu                      = "512"
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -29,7 +34,7 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "DATABASE_NAME", value = "strapi" },
         { name = "DATABASE_USERNAME", value = var.db_username },
         { name = "DATABASE_PASSWORD", value = var.db_password },
-        { name = "URL", value = "https://${aws_lb.this.dns_name}" },
+        { name = "URL", value = "http://${aws_lb.this.dns_name}" },
         { name = "APP_KEYS", value = "generated-app-key" },
         { name = "API_TOKEN_SALT", value = "generated-salt" },
         { name = "ADMIN_JWT_SECRET", value = "generated-jwt-secret" },
@@ -46,6 +51,11 @@ resource "aws_ecs_task_definition" "strapi" {
       }
     }
   ])
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
 }
 
 resource "aws_ecs_service" "this" {
@@ -68,9 +78,18 @@ resource "aws_ecs_service" "this" {
   }
 
   depends_on = [aws_lb_listener.this]
+
+  tags = {
+    Name = "${var.project_name}-service"
+  }
 }
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "this" {
-  name = "/ecs/${var.project_name}"
+  name              = "/ecs/${var.project_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name = "${var.project_name}-logs"
+  }
 }

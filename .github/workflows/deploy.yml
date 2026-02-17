@@ -9,7 +9,56 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
-  deploy:
+  terraform:
+    runs-on: ubuntu-latest
+    outputs:
+      ecr-repository: ${{ steps.output.outputs.ecr-repository }}
+      alb-dns: ${{ steps.output.outputs.alb-dns }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ">=1.0"
+
+    - name: Terraform Init
+      run: |
+        cd terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd terraform
+        terraform plan \
+          -var="db_password=${{ secrets.DB_PASSWORD }}" \
+          -var="image_url=placeholder"
+
+    - name: Terraform Apply
+      run: |
+        cd terraform
+        terraform apply -auto-approve \
+          -var="db_password=${{ secrets.DB_PASSWORD }}" \
+          -var="image_url=placeholder"
+
+    - name: Terraform Outputs
+      id: output
+      run: |
+        cd terraform
+        echo "ecr-repository=$(terraform output -raw ecr_repository)" >> $GITHUB_OUTPUT
+        echo "alb-dns=$(terraform output -raw alb_dns)" >> $GITHUB_OUTPUT
+
+  build-and-deploy:
+    needs: terraform
     runs-on: ubuntu-latest
 
     steps:
@@ -33,17 +82,23 @@ jobs:
       run: |
         IMAGE_TAG=$(git rev-parse --short HEAD)
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        ECR_URI=$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/strapi
+        ECR_URI=$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.terraform.outputs.ecr-repository }}
 
         docker build -t $ECR_URI:$IMAGE_TAG ./backend
         docker push $ECR_URI:$IMAGE_TAG
 
         echo "IMAGE_URL=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
 
-    - name: Terraform Init & Apply
+    - name: Update ECS Service
       run: |
         cd terraform
-        terraform init
         terraform apply -auto-approve \
           -var="image_url=${IMAGE_URL}" \
           -var="db_password=${{ secrets.DB_PASSWORD }}"
+
+    - name: Deployment Summary
+      run: |
+        echo "🚀 Strapi deployed successfully!"
+        echo "📦 ECR Repository: ${{ needs.terraform.outputs.ecr-repository }}"
+        echo "🌐 Application URL: http://${{ needs.terraform.outputs.alb-dns }}"
+        echo "🔧 Admin Panel: http://${{ needs.terraform.outputs.alb-dns }}/admin"

@@ -1,11 +1,11 @@
 # Create VPC if not provided
 resource "aws_vpc" "this" {
   count = var.vpc_id == "" ? 1 : 0
-  
+
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
-  
+
   tags = {
     Name = "${var.project_name}-vpc"
   }
@@ -18,12 +18,12 @@ locals {
 # Create public subnets if not provided
 resource "aws_subnet" "public" {
   count = length(var.public_subnets) > 0 ? 0 : 2
-  
+
   vpc_id                  = local.vpc_id
   cidr_block              = "10.0.${count.index}.0/24"
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "${var.project_name}-public-${count.index}"
   }
@@ -32,11 +32,11 @@ resource "aws_subnet" "public" {
 # Create private subnets if not provided
 resource "aws_subnet" "private" {
   count = length(var.private_subnets) > 0 ? 0 : 2
-  
+
   vpc_id            = local.vpc_id
   cidr_block        = "10.0.${count.index + 10}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
-  
+
   tags = {
     Name = "${var.project_name}-private-${count.index}"
   }
@@ -50,9 +50,9 @@ locals {
 # Internet Gateway for public subnets
 resource "aws_internet_gateway" "this" {
   count = var.vpc_id == "" ? 1 : 0
-  
+
   vpc_id = local.vpc_id
-  
+
   tags = {
     Name = "${var.project_name}-igw"
   }
@@ -61,14 +61,14 @@ resource "aws_internet_gateway" "this" {
 # Route table for public subnets
 resource "aws_route_table" "public" {
   count = var.vpc_id == "" ? 1 : 0
-  
+
   vpc_id = local.vpc_id
-  
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.this[0].id
   }
-  
+
   tags = {
     Name = "${var.project_name}-public-rt"
   }
@@ -77,7 +77,7 @@ resource "aws_route_table" "public" {
 # Associate route table with public subnets
 resource "aws_route_table_association" "public" {
   count = var.vpc_id == "" ? 2 : 0
-  
+
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public[0].id
 }

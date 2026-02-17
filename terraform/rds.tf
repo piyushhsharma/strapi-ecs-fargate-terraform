@@ -18,11 +18,11 @@ resource "aws_db_instance" "postgres" {
   publicly_accessible    = false
   skip_final_snapshot    = true
   storage_encrypted      = true
-  
+
   backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-  
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+
   tags = {
     Name = "${var.project_name}-db"
   }
