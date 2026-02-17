@@ -1,3 +1,36 @@
+terraform {
+  required_version = ">= 1.0"
+}
+
+variable "project_name" {
+  description = "Project name for resource tagging"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "Existing VPC ID (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "public_subnets" {
+  description = "Existing public subnet IDs (optional)"
+  type        = list(string)
+  default     = []
+}
+
+variable "private_subnets" {
+  description = "Existing private subnet IDs (optional)"
+  type        = list(string)
+  default     = []
+}
+
+locals {
+  vpc_id = var.vpc_id != "" ? var.vpc_id : aws_vpc.this[0].id
+  public_subnets  = length(var.public_subnets) > 0 ? var.public_subnets : aws_subnet.public[*].id
+  private_subnets = length(var.private_subnets) > 0 ? var.private_subnets : aws_subnet.private[*].id
+}
+
 # Create VPC if not provided
 resource "aws_vpc" "this" {
   count = var.vpc_id == "" ? 1 : 0
@@ -13,10 +46,6 @@ resource "aws_vpc" "this" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-locals {
-  vpc_id = var.vpc_id != "" ? var.vpc_id : aws_vpc.this[0].id
 }
 
 # Create public subnets if not provided
@@ -52,11 +81,6 @@ resource "aws_subnet" "private" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-locals {
-  public_subnets  = length(var.public_subnets) > 0 ? var.public_subnets : aws_subnet.public[*].id
-  private_subnets = length(var.private_subnets) > 0 ? var.private_subnets : aws_subnet.private[*].id
 }
 
 # Internet Gateway for public subnets

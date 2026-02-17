@@ -7,19 +7,19 @@ variable "project_name" {
 }
 
 variable "vpc_id" {
-  description = "VPC ID where resources will be created"
+  description = "Existing VPC ID (optional)"
   type        = string
   default     = ""
 }
 
 variable "public_subnets" {
-  description = "Public subnet IDs for ALB"
+  description = "Existing public subnet IDs (optional)"
   type        = list(string)
   default     = []
 }
 
 variable "private_subnets" {
-  description = "Private subnet IDs for ECS & RDS"
+  description = "Existing private subnet IDs (optional)"
   type        = list(string)
   default     = []
 }

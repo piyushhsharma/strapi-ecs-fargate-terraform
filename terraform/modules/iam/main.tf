@@ -1,3 +1,12 @@
+terraform {
+  required_version = ">= 1.0"
+}
+
+variable "project_name" {
+  description = "Project name for resource tagging"
+  type        = string
+}
+
 resource "aws_iam_role" "ecs_execution" {
   name = "${var.project_name}-ecs-execution-role"
 

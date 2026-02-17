@@ -1,29 +1,29 @@
 output "alb_dns" {
-  description = "DNS name of the Application Load Balancer"
-  value       = aws_lb.this.dns_name
+  description = "Application Load Balancer DNS name"
+  value       = module.alb.alb_dns_name
 }
 
 output "alb_url" {
-  description = "URL of the Application Load Balancer"
-  value       = "http://${aws_lb.this.dns_name}"
+  description = "Application Load Balancer URL"
+  value       = "http://${module.alb.alb_dns_name}"
 }
 
 output "ecs_cluster" {
-  description = "Name of the ECS cluster"
-  value       = aws_ecs_cluster.this.name
+  description = "ECS cluster name"
+  value       = module.ecs.cluster_name
 }
 
 output "ecs_service" {
-  description = "Name of the ECS service"
-  value       = aws_ecs_service.this.name
+  description = "ECS service name"
+  value       = module.ecs.service_name
 }
 
 output "ecr_repository" {
-  description = "Name of the ECR repository"
-  value       = aws_ecr_repository.strapi.name
+  description = "ECR repository name"
+  value       = module.ecr.repository_name
 }
 
 output "rds_endpoint" {
   description = "RDS instance endpoint"
-  value       = aws_db_instance.postgres.endpoint
+  value       = module.rds.db_endpoint
 }

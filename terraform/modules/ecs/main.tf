@@ -1,3 +1,91 @@
+terraform {
+  required_version = ">= 1.0"
+}
+
+variable "project_name" {
+  description = "Project name for resource tagging"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
+variable "private_subnets" {
+  description = "Private subnet IDs"
+  type        = list(string)
+}
+
+variable "ecs_execution_role_arn" {
+  description = "ECS execution role ARN"
+  type        = string
+}
+
+variable "ecs_task_role_arn" {
+  description = "ECS task role ARN"
+  type        = string
+}
+
+variable "target_group_arn" {
+  description = "ALB target group ARN"
+  type        = string
+}
+
+variable "image_url" {
+  description = "ECR image URL for Strapi"
+  type        = string
+}
+
+variable "db_endpoint" {
+  description = "RDS endpoint"
+  type        = string
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+resource "aws_security_group" "ecs" {
+  name        = "${var.project_name}-ecs-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = 1337
+    to_port         = 1337
+    protocol        = "tcp"
+    security_groups = [var.alb_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-ecs-sg"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+output "ecs_security_group_id" {
+  description = "ECS security group ID"
+  value       = aws_security_group.ecs.id
+}
+
 resource "aws_ecs_cluster" "this" {
   name = "${var.project_name}-cluster"
 
@@ -15,14 +103,27 @@ resource "aws_ecs_cluster" "this" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/ecs/${var.project_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name = "${var.project_name}-logs"
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "${var.project_name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn           = var.ecs_task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -37,12 +138,12 @@ resource "aws_ecs_task_definition" "strapi" {
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "DATABASE_CLIENT", value = "postgres" },
-        { name = "DATABASE_HOST", value = aws_db_instance.postgres.address },
+        { name = "DATABASE_HOST", value = var.db_endpoint },
         { name = "DATABASE_PORT", value = "5432" },
         { name = "DATABASE_NAME", value = "strapi" },
         { name = "DATABASE_USERNAME", value = var.db_username },
         { name = "DATABASE_PASSWORD", value = var.db_password },
-        { name = "URL", value = "http://${aws_lb.this.dns_name}" },
+        { name = "URL", value = "http://${module.alb.alb_dns_name}" },
         { name = "APP_KEYS", value = "generated-app-key" },
         { name = "API_TOKEN_SALT", value = "generated-salt" },
         { name = "ADMIN_JWT_SECRET", value = "generated-jwt-secret" },
@@ -53,7 +154,7 @@ resource "aws_ecs_task_definition" "strapi" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/${var.project_name}"
-          "awslogs-region"        = var.aws_region
+          "awslogs-region"        = "us-east-1"
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -78,18 +179,16 @@ resource "aws_ecs_service" "this" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = local.private_subnets
+    subnets          = var.private_subnets
     security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.this.arn
+    target_group_arn = var.target_group_arn
     container_name   = var.project_name
     container_port   = 1337
   }
-
-  depends_on = [aws_lb_listener.this]
 
   tags = {
     Name = "${var.project_name}-service"
@@ -97,20 +196,6 @@ resource "aws_ecs_service" "this" {
 
   lifecycle {
     create_before_destroy = true
-    ignore_changes        = [task_definition]
-  }
-}
-
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "this" {
-  name              = "/ecs/${var.project_name}"
-  retention_in_days = 7
-
-  tags = {
-    Name = "${var.project_name}-logs"
-  }
-
-  lifecycle {
-    prevent_destroy = false
+    ignore_changes = [task_definition]
   }
 }
