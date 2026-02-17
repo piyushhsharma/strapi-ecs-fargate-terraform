@@ -18,6 +18,7 @@ RUN npm ci
 # Copy app source
 COPY . .
 
+
 # Build admin panel
 RUN npm run build
 
