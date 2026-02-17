@@ -9,6 +9,10 @@ resource "aws_vpc" "this" {
   tags = {
     Name = "${var.project_name}-vpc"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 locals {
@@ -27,6 +31,10 @@ resource "aws_subnet" "public" {
   tags = {
     Name = "${var.project_name}-public-${count.index}"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Create private subnets if not provided
@@ -39,6 +47,10 @@ resource "aws_subnet" "private" {
 
   tags = {
     Name = "${var.project_name}-private-${count.index}"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -56,6 +68,10 @@ resource "aws_internet_gateway" "this" {
   tags = {
     Name = "${var.project_name}-igw"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Route table for public subnets
@@ -72,6 +88,10 @@ resource "aws_route_table" "public" {
   tags = {
     Name = "${var.project_name}-public-rt"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Associate route table with public subnets
@@ -80,6 +100,10 @@ resource "aws_route_table_association" "public" {
 
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public[0].id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Data source for availability zones

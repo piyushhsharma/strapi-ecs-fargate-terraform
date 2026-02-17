@@ -9,11 +9,23 @@ resource "aws_iam_role" "ecs_execution" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  tags = {
+    Name = "${var.project_name}-ecs-execution-role"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role" "ecs_task" {
@@ -27,9 +39,21 @@ resource "aws_iam_role" "ecs_task" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  tags = {
+    Name = "${var.project_name}-ecs-task-role"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_policy" {
   role       = aws_iam_role.ecs_task.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }

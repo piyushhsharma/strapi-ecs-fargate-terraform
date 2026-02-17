@@ -28,6 +28,10 @@ resource "aws_security_group" "alb" {
   tags = {
     Name = "${var.project_name}-alb-sg"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Security group for ECS
@@ -53,6 +57,10 @@ resource "aws_security_group" "ecs" {
   tags = {
     Name = "${var.project_name}-ecs-sg"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Security group for RDS
@@ -77,5 +85,9 @@ resource "aws_security_group" "rds" {
 
   tags = {
     Name = "${var.project_name}-rds-sg"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }

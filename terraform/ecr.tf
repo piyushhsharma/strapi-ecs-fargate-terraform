@@ -9,4 +9,8 @@ resource "aws_ecr_repository" "strapi" {
   tags = {
     Name = "${var.project_name}-ecr"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }

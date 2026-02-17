@@ -1,6 +1,14 @@
 resource "aws_db_subnet_group" "this" {
   name       = "${var.project_name}-db-subnet"
   subnet_ids = local.private_subnets
+
+  tags = {
+    Name = "${var.project_name}-db-subnet"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_db_instance" "postgres" {
@@ -25,5 +33,9 @@ resource "aws_db_instance" "postgres" {
 
   tags = {
     Name = "${var.project_name}-db"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }

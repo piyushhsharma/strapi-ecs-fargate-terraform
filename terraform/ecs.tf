@@ -5,6 +5,14 @@ resource "aws_ecs_cluster" "this" {
     name  = "containerInsights"
     value = "enabled"
   }
+
+  tags = {
+    Name = "${var.project_name}-cluster"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_ecs_task_definition" "strapi" {
@@ -56,6 +64,10 @@ resource "aws_ecs_task_definition" "strapi" {
     operating_system_family = "LINUX"
     cpu_architecture        = "X86_64"
   }
+
+  lifecycle {
+    ignore_changes = [container_definitions]
+  }
 }
 
 resource "aws_ecs_service" "this" {
@@ -82,6 +94,11 @@ resource "aws_ecs_service" "this" {
   tags = {
     Name = "${var.project_name}-service"
   }
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [task_definition]
+  }
 }
 
 # CloudWatch Log Group
@@ -91,5 +108,9 @@ resource "aws_cloudwatch_log_group" "this" {
 
   tags = {
     Name = "${var.project_name}-logs"
+  }
+
+  lifecycle {
+    prevent_destroy = false
   }
 }

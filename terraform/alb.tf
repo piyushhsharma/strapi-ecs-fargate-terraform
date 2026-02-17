@@ -7,6 +7,10 @@ resource "aws_lb" "this" {
   tags = {
     Name = "${var.project_name}-alb"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lb_target_group" "this" {
@@ -29,6 +33,10 @@ resource "aws_lb_target_group" "this" {
   tags = {
     Name = "${var.project_name}-tg"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lb_listener" "this" {
@@ -39,5 +47,9 @@ resource "aws_lb_listener" "this" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.this.arn
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
