@@ -1,0 +1,17 @@
+# AWS Region
+aws_region = "us-east-1"
+
+# Project name (used for resource naming)
+project_name = "strapi"
+
+# VPC Configuration (optional - if not provided, Terraform will create)
+# vpc_id = "vpc-xxxxxxxxx"
+# public_subnets = ["subnet-xxxxxxxxx", "subnet-xxxxxxxxx"]
+# private_subnets = ["subnet-xxxxxxxxx", "subnet-xxxxxxxxx"]
+
+# Database Configuration
+db_username = "strapiuser"
+# db_password = "your-secure-password"  # Set via DB_PASSWORD secret in GitHub
+
+# Image URL (will be set by GitHub Actions)
+# image_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/strapi:abc123"
