@@ -61,6 +61,11 @@ resource "aws_ecs_service" "strapi" {
     capacity_provider = "FARGATE_SPOT"
     weight           = 1
   }
+  
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight           = 1
+  }
 
   network_configuration {
     subnets          = var.subnet_ids
