@@ -9,11 +9,18 @@ data "aws_subnets" "default" {
   }
 }
 
-module "ecs" {
-  source = "./modules/ecs"
+# Blue/Green deployment for Strapi
+module "strapi" {
+  source = "./modules/blue-green"
 
-  image_url   = var.image_url
-  subnet_ids  = data.aws_subnets.default.ids
-  vpc_id      = data.aws_vpc.default.id
-  db_password = var.db_password
+  app_name       = var.app_name
+  environment    = var.environment
+  image_url      = var.image_url
+  db_password    = var.db_password
+  vpc_id         = data.aws_vpc.default.id
+  subnet_ids     = data.aws_subnets.default.ids
+  desired_count  = var.desired_count
+  cpu            = var.cpu
+  memory         = var.memory
+  container_port = var.container_port
 }

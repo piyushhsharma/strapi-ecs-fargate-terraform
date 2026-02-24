@@ -1,48 +1,50 @@
 variable "app_name" {
   type        = string
   description = "Application name"
-  default     = "strapi"
 }
 
 variable "environment" {
   type        = string
   description = "Environment name"
-  default     = "production"
 }
 
 variable "image_url" {
   type        = string
   description = "Docker image URL for Strapi application"
-  default     = "piyushhsharma/jaspal-strapi:latest"
 }
 
 variable "db_password" {
   type        = string
   description = "Database password for Strapi"
-  default     = "piyush@04"
   sensitive   = true
+}
+
+variable "vpc_id" {
+  type        = string
+  description = "VPC ID"
+}
+
+variable "subnet_ids" {
+  type        = list(string)
+  description = "List of subnet IDs"
 }
 
 variable "desired_count" {
   type        = number
   description = "Desired number of tasks"
-  default     = 1
 }
 
 variable "cpu" {
   type        = number
   description = "CPU units for task"
-  default     = 512
 }
 
 variable "memory" {
   type        = number
   description = "Memory for task"
-  default     = 1024
 }
 
 variable "container_port" {
   type        = number
   description = "Container port"
-  default     = 1337
 }
