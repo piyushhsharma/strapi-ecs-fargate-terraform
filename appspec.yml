@@ -1,0 +1,9 @@
+version: 1
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: "arn:aws:ecs:us-east-1:891612567165:task-definition/strapi-task:9"
+        LoadBalancerInfo:
+          ContainerName: "strapi"
+          ContainerPort: 1337

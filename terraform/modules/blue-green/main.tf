@@ -99,6 +99,17 @@ resource "aws_iam_role_policy_attachment" "codedeploy" {
 }
 
 
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "strapi" {
+  name              = "/ecs/${var.app_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name        = "/ecs/${var.app_name}"
+    Environment = var.environment
+  }
+}
+
 # Application Load Balancer
 resource "aws_lb" "main" {
   name               = "${var.app_name}-blue-green-alb"
@@ -127,8 +138,8 @@ resource "aws_lb_target_group" "blue" {
     enabled             = true
     healthy_threshold   = 2
     interval           = 30
-    matcher            = "200"
-    path              = "/"
+    matcher            = "200-399"
+    path              = "/admin"
     port              = "traffic-port"
     protocol           = "HTTP"
     timeout            = 5
@@ -152,8 +163,8 @@ resource "aws_lb_target_group" "green" {
     enabled             = true
     healthy_threshold   = 2
     interval           = 30
-    matcher            = "200"
-    path              = "/"
+    matcher            = "200-399"
+    path              = "/admin"
     port              = "traffic-port"
     protocol           = "HTTP"
     timeout            = 5
@@ -200,6 +211,8 @@ resource "aws_ecs_task_definition" "strapi" {
       ]
       environment = [
         { name = "NODE_ENV", value = "production" },
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "PORT", value = "1337" },
         { name = "DATABASE_CLIENT", value = "postgres" },
         { name = "DATABASE_HOST", value = "dummy" },
         { name = "DATABASE_PORT", value = "5432" },
@@ -207,6 +220,14 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "DATABASE_USERNAME", value = "strapiuser" },
         { name = "DATABASE_PASSWORD", value = var.db_password }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.app_name}"
+          "awslogs-region"        = "us-east-1"
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
     }
   ])
 
@@ -242,6 +263,7 @@ resource "aws_ecs_service" "main" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = var.desired_count
+  launch_type     = "FARGATE"
 
   # Use CodeDeploy as deployment controller
   deployment_controller {
@@ -258,7 +280,13 @@ resource "aws_ecs_service" "main" {
   network_configuration {
     subnets          = var.subnet_ids
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = false
+    assign_public_ip = true
+  }
+
+  # Enable deployment circuit breaker
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
 
   depends_on = [
@@ -300,7 +328,7 @@ resource "aws_codedeploy_deployment_group" "main" {
   # Auto rollback configuration
   auto_rollback_configuration {
     enabled = true
-    events  = ["DEPLOYMENT_FAILURE"]
+    events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM", "DEPLOYMENT_STOP_ON_REQUEST"]
   }
 
   # Load balancer info
